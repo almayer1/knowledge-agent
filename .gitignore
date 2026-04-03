@@ -1,0 +1,15 @@
+# Environment
+.env
+.venv/
+
+# Personal data & generated DB
+data/raw/*
+data/chroma/*
+!data/raw/.gitkeep
+!data/chroma/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
