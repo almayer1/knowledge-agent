@@ -37,7 +37,8 @@ def chunk_document(document: Document) -> list[Chunk]:
                 "source": document.source,
                 "doc_type": document.doc_type,
                 "chunk_index": i,
-                "total_chunks": total_chunks
+                "total_chunks": total_chunks,
+                "document_id": document.id
             }
         )
         chunks.append(chunk)
