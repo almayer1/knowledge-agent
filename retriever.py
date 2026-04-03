@@ -11,6 +11,6 @@ def format_context(results: list[QueryResult]) -> str:
 
     for i, result in enumerate(results):
         path = Path(result.chunk.metadata["source"])
-        parts.append(f"[Source {i + 1}: {path.name}\n{result.chunk.content}")
+        parts.append(f"[Source {i + 1}: {path.name}]\n{result.chunk.content}")
     
     return "\n\n".join(parts)
