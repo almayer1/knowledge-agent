@@ -1,6 +1,8 @@
 from openai import OpenAI
+import openai
 
 from config import Settings
+from exceptions import OllamaConnectionError
 from models import Answer
 from retriever import retrieve, format_context
 
@@ -38,13 +40,17 @@ def generate(question: str) -> Answer:
 
     user_prompt = f"Context:\n{context}\nQuestion: {question}"
 
-    response = client.chat.completions.create(
-        model=settings.llm_model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
-        ]
-    )
+    try:
+        response = client.chat.completions.create(
+            model=settings.llm_model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ]
+        )
+    except openai.APIConnectionError:
+        raise OllamaConnectionError("Could not connect to Ollama.\nMake sure it is running with: ollama serve")
+    
     answer = response.choices[0].message.content
     return Answer(
         question=question,
