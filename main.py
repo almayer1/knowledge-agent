@@ -19,11 +19,18 @@ def ingest():
     pdf_files = (settings.data_dir / "raw").glob("*.pdf")
     files = list(txt_files) + list(pdf_files)
 
+    if len(files) == 0:
+        print("There are no files to search through! Please provide file(s)")
+        return
+
     # Extract chunks from each file and add them to db
     num_chunks = 0
     num_documents = 0
     for file in files:
-        document = load_document(file)
+        try:
+            document = load_document(file)
+        except KeyError:
+                print(f"Warning: Skipping {file.name} — unsupported file type. Only .txt and .pdf are supported.")
         chunks = chunk_document(document)
         add_chunks(chunks)
         #stats for summary
