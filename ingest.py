@@ -47,7 +47,7 @@ def read_typed_pdf(path: Path) -> Document:
 
     return Document(
         id=hashlib.md5(str(path).encode()).hexdigest(),
-        source=path,
+        source=str(path),
         content=full_text,
         doc_type=DocType.TYPED_PDF
     )
