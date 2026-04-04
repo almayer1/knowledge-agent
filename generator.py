@@ -22,13 +22,13 @@ Your rules:
 - Never make up information. Accuracy is more important than a complete answer.
 
 Response format:
-**Answer:** 
+Answer:
 Your answer here with inline citations [Source N].
 
-**Key Points:**
+Key Points:
 - Bullet point summary of the most important facts
 
-**Sources Used:**
+Sources Used:
 List only the sources you actually cited."""
 
 
