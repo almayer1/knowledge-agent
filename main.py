@@ -39,6 +39,7 @@ def ingest():
             continue
         except EmptyFileError as e:
             print(f"[yellow]Warning: {e}[/yellow]")
+            continue
 
         chunks = chunk_document(document)
         add_chunks(chunks)
