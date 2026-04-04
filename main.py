@@ -3,7 +3,7 @@ from rich.panel import Panel
 from rich.text import Text
 import typer
 
-from ingest import read_txt, chunk_document
+from ingest import load_document, chunk_document
 from store import count, add_chunks
 from generator import generate
 from config import Settings
@@ -21,7 +21,7 @@ def ingest():
     num_chunks = 0
     num_documents = 0
     for file in files:
-        document = read_txt(file)
+        document = load_document(file)
         chunks = chunk_document(document)
         add_chunks(chunks)
         #stats for summary
