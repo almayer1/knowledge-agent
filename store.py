@@ -26,7 +26,7 @@ def add_chunks(chunks: list[Chunk]):
         metadatas.append(chunk.metadata)
 
     #store data from chunks
-    collection.add(
+    collection.upsert(
         ids=ids, 
         documents=documents, 
         metadatas=metadatas
