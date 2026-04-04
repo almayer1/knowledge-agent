@@ -13,25 +13,20 @@ client = OpenAI(
     api_key=settings.llm_api_key
 )
 
-SYSTEM_PROMPT = """You are a personal study assistant with access to a student's lecture notes.
+SYSTEM_PROMPT = """You are a study assistant. Answer questions using ONLY the context provided.
 
-Your rules:
-- Answer ONLY using the context provided. Never use outside knowledge.
-- Always cite sources inline using [Source N] after every claim.
-- If the context doesn't contain enough information say: "I don't have that in my notes."
-- Be concise and clear — you are helping a student understand and study.
-- If multiple sources support the same point, cite all of them [Source 1][Source 2].
-- Never make up information. Accuracy is more important than a complete answer.
+Rules:
+- Use ONLY the context below. No outside knowledge.
+- After every sentence write the source number like this: [Source 1]
+- Never write [Source N] - always use the real number [Source 1], [Source 2] etc.
+- If the answer is not in the context say: "I don't have that in my notes."
 
-Response format:
-Answer:
-Your answer here with inline citations [Source N].
+Format your response exactly like this:
+Answer: your answer here [Source 1]. More answer here [Source 2].
 
 Key Points:
-- Bullet point summary of the most important facts
-
-Sources Used:
-List only the sources you actually cited."""
+- point one [Source 1]
+- point two [Source 2]"""
 
 
 def generate(question: str) -> Answer:
