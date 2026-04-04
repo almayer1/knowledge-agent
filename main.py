@@ -14,10 +14,12 @@ app = typer.Typer()
 
 @app.command(name="ingest")
 def ingest():
-    #gets all the txt files in data/raw
-    files = list((settings.data_dir / "raw").glob("*.txt"))
+    # Get all txt and pdf files from data/raw
+    txt_files = (settings.data_dir / "raw").glob("*.txt")
+    pdf_files = (settings.data_dir / "raw").glob("*.pdf")
+    files = list(txt_files) + list(pdf_files)
 
-    #extract chunks from each file and add them to db
+    # Extract chunks from each file and add them to db
     num_chunks = 0
     num_documents = 0
     for file in files:
@@ -28,17 +30,17 @@ def ingest():
         num_chunks += chunks[0].metadata["total_chunks"]
         num_documents += 1
     
-    #print summary
+    # Print summary
     message = f"{num_chunks} chunks were added from {num_documents} files"
     print(Panel(message, title="Summary", border_style="green", expand=False))
 
 @app.command(name="ask")
 def ask(question: str):
     answer = generate(question)
-    #print answer
+    # Print answer
     print(Panel(answer.answer, title="Knowledge Agent", border_style="green"))
 
-    #print sources underneath answer
+    # Print sources underneath answer
     print("[bold]Sources:[/bold]")
     for i, source in enumerate(answer.sources):
         print(f"  [cyan][Source {i+1}][/cyan] {source.chunk.metadata['source']}")

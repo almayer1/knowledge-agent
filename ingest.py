@@ -1,7 +1,7 @@
 from pathlib import Path
 import math
 import hashlib
-from pdfplumber import extract_text_layer
+import pdfplumber
 
 from config import Settings
 from models import Document, DocType, Chunk
@@ -22,14 +22,35 @@ def read_txt(path: Path) -> Document:
     )
 
 def read_pdf(path: Path) -> Document:
-    text = extract_text_layer(path)
+    # Extract text
+    with pdfplumber.open(path) as pdf:
+        text = pdf.pages[0].extract_text() or ""
+    
+    # Check if typed or handwritten
     if len(text.strip()) > 50:       
         return read_typed_pdf(path)  
     else:                            
         return read_handwritten_pdf(path)
     
 def read_typed_pdf(path: Path) -> Document:
-    pass
+    path = path.resolve()
+
+    # Extract text from each page
+    all_text = []
+    with pdfplumber.open(path) as pdf:
+        for i, page in enumerate(pdf.pages):
+            text = page.extract_text() 
+            all_text.append(f"[Page {i+1}]\n{text}")
+    
+    # Combine each page's text
+    full_text = "\n".join(all_text)
+
+    return Document(
+        id=hashlib.md5(str(path).encode()).hexdigest(),
+        source=path,
+        content=full_text,
+        doc_type=DocType.TYPED_PDF
+    )
 
 def chunk_document(document: Document) -> list[Chunk]:
     #find total number of chunks
