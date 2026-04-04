@@ -1,0 +1,2 @@
+class OllamaConnectionError(Exception):
+    pass
