@@ -6,8 +6,9 @@ import Quartz
 from PIL import Image
 import numpy as np
 
-from models import Document, DocType
 from config import Settings
+from exceptions import EmptyFileError
+from models import Document, DocType
 
 settings = Settings()
 
@@ -83,6 +84,9 @@ def read_handwritten_pdf(path: Path) -> Document:
 
     # Convert PDF pages to images
     images = pdf_to_images(path)
+
+    if not images:
+        raise EmptyFileError(f"Skipping {path.name} - appears to be empty or corrupted. no pages found")
 
     # OCR each page, collect text and confidence
     all_text = []

@@ -6,3 +6,6 @@ class EmptyKnowledgeBaseError(Exception):
 
 class UnsupportedFileTypeError(Exception):
     pass
+
+class EmptyFileError(Exception):
+    pass

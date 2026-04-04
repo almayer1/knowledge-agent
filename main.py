@@ -3,7 +3,7 @@ from rich.panel import Panel
 from rich.text import Text
 import typer
 
-from exceptions import OllamaConnectionError, EmptyKnowledgeBaseError, UnsupportedFileTypeError
+from exceptions import OllamaConnectionError, EmptyKnowledgeBaseError, UnsupportedFileTypeError, EmptyFileError
 from config import Settings
 from ingest import load_document, chunk_document
 from store import count, add_chunks
@@ -32,12 +32,14 @@ def ingest():
         try:
             document = load_document(file)
         except UnsupportedFileTypeError as e:
-            print(f"Warning: {e}")
+            print(f"[yellow]Warning: {e}[/yellow]")
             continue
         except UnicodeDecodeError as e:
-            print(f"Warning: {e}")
+            print(f"[yellow]Warning: {e}[/yellow]")
             continue
-        
+        except EmptyFileError as e:
+            print(f"[yellow]Warning: {e}[/yellow]")
+
         chunks = chunk_document(document)
         add_chunks(chunks)
         
@@ -51,6 +53,11 @@ def ingest():
 
 @app.command(name="ask")
 def ask(question: str):
+    # Error: if question empty
+    if not question.strip():
+        print("[red]Error: Please enter a question.[/red]")
+        return
+
     try:
         answer = generate(question)
     except OllamaConnectionError as e:
