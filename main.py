@@ -3,10 +3,12 @@ from rich.panel import Panel
 from rich.text import Text
 import typer
 
+from exceptions import OllamaConnectionError, EmptyKnowledgeBaseError, UnsupportedFileTypeError
+from config import Settings
 from ingest import load_document, chunk_document
 from store import count, add_chunks
 from generator import generate
-from config import Settings
+
 
 
 settings = Settings()
@@ -29,10 +31,16 @@ def ingest():
     for file in files:
         try:
             document = load_document(file)
-        except KeyError:
-                print(f"Warning: Skipping {file.name} — unsupported file type. Only .txt and .pdf are supported.")
+        except UnsupportedFileTypeError as e:
+            print(f"Warning: {e}")
+            continue
+        except UnicodeDecodeError as e:
+            print(f"Warning: {e}")
+            continue
+        
         chunks = chunk_document(document)
         add_chunks(chunks)
+        
         #stats for summary
         num_chunks += chunks[0].metadata["total_chunks"]
         num_documents += 1
@@ -43,7 +51,15 @@ def ingest():
 
 @app.command(name="ask")
 def ask(question: str):
-    answer = generate(question)
+    try:
+        answer = generate(question)
+    except OllamaConnectionError as e:
+        print(f"[red]Error: {e}[/red]")
+        return
+    except EmptyKnowledgeBaseError as e:
+        print(f"[red]Error: {e}[/red]")
+        return
+    
     # Print answer
     print(Panel(answer.answer, title="Knowledge Agent", border_style="green"))
 

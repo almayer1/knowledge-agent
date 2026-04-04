@@ -1,7 +1,8 @@
 import chromadb
 
-from models import Chunk, QueryResult
 from config import Settings
+from exceptions import EmptyKnowledgeBaseError
+from models import Chunk, QueryResult
 
 settings = Settings()
 client = chromadb.PersistentClient(path=str(settings.data_dir / "chroma"))
@@ -14,6 +15,9 @@ def get_collection():
     return collection
 
 def add_chunks(chunks: list[Chunk]):
+    if not chunks:
+        return
+
     collection = get_collection()
     ids = []
     documents = []
@@ -42,6 +46,10 @@ def query(question: str) -> list[QueryResult]:
         query_texts=[question],
         n_results=settings.top_k
     )
+
+    # Check if empty
+    if len(results["ids"][0]) == 0:
+        raise EmptyKnowledgeBaseError("No documents ingested yet. Run ingest first")
 
     #for each result in results convert result to Chunk and score and store as QueryResult
     for i in range(len(results["ids"][0])):

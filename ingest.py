@@ -4,6 +4,7 @@ import hashlib
 import pdfplumber
 
 from config import Settings
+from exceptions import UnsupportedFileTypeError
 from models import Document, DocType, Chunk
 from ocr import read_handwritten_pdf
 
@@ -11,8 +12,13 @@ settings = Settings()
 
 def read_txt(path: Path) -> Document:
     path = path.resolve()
-    with open(path, "r", encoding="utf-8") as f:
-        content = f.read()
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        raise UnicodeDecodeError(f"Skipping {path.name} — could not read file. Check the file encoding.")
+
     
     return Document(
         id=hashlib.md5(str(path).encode()).hexdigest(),
@@ -88,4 +94,9 @@ def load_document(path: Path) -> Document:
     extension = path.suffix.lower()
 
     # Determine what file reader to use and use it
-    return READERS[extension](path)
+    try:
+        document = READERS[extension](path)
+    except UnsupportedFileTypeError:
+        raise UnsupportedFileTypeError(f"Skipping {path.name} — unsupported file type. Only .txt and .pdf are supported.")
+
+    return document

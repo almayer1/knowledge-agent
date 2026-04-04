@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import ValidationInfo, field_validator
 from pathlib import Path
 
 
@@ -12,6 +13,13 @@ class Settings(BaseSettings):
     chunk_size: int = 500
     chunk_overlap: int = 50
     top_k: int = 5
+
+    @field_validator("chunk_overlap")
+    def overlap_must_be_less_than_size(cls, overlap, info: ValidationInfo):
+        chunk_size = info.data.get("chunk_size")
+        if chunk_size and overlap >= chunk_size:
+            raise ValueError("chunk_overlap must be less than chunk_size")
+        return overlap
 
     # OCR
     ocr_dpi: int = 300
