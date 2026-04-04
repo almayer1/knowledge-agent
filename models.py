@@ -28,3 +28,6 @@ class Answer(BaseModel):
     question: str
     answer: str
     sources: list[QueryResult]
+
+class AskRequest(BaseModel):
+    question: str
