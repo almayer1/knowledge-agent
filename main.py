@@ -3,20 +3,40 @@ from rich.panel import Panel
 from rich.text import Text
 import typer
 
-from store import count
+from ingest import read_txt, chunk_document
+from store import count, add_chunks
 from generator import generate
+from config import Settings
 
+
+settings = Settings()
 app = typer.Typer()
 
 @app.command(name="ingest")
 def ingest():
-    pass
+    #gets all the txt files in data/raw
+    files = list((settings.data_dir / "raw").glob("*.txt"))
+
+    #extract chunks from each file and add them to db
+    num_chunks = 0
+    num_documents = 0
+    for file in files:
+        document = read_txt(file)
+        chunks = chunk_document(document)
+        add_chunks(chunks)
+        #stats for summary
+        num_chunks += chunks[0].metadata["total_chunks"]
+        num_documents += 1
+    
+    #print summary
+    message = f"{num_chunks} chunks were added from {num_documents} files"
+    print(Panel(message, title="Summary", border_style="green", expand=False))
 
 @app.command(name="ask")
 def ask(question: str):
     answer = generate(question)
     #print answer
-    print(Panel(answer.answer, title="Answer", border_style="green"))
+    print(Panel(answer.answer, title="Knowledge Agent", border_style="green"))
 
     #print sources underneath answer
     print("[bold]Sources:[/bold]")

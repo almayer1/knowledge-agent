@@ -8,6 +8,7 @@ from models import Document, DocType, Chunk
 settings = Settings()
 
 def read_txt(path: Path) -> Document:
+    path = path.resolve()
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
     
