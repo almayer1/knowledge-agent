@@ -86,14 +86,28 @@ READERS = {
     ".txt": read_txt,
     ".pdf": read_pdf
 }
+def ingested_documents() -> list[str]:
+    try:
+        return (settings.data_dir / "ingested.txt").read_text().splitlines()
+    except FileNotFoundError:
+        return []
+
+def mark_as_ingested(path: Path):
+    with open(settings.data_dir / "ingested.txt", "a") as f:
+        f.write(path.name + "\n")
 
 def load_document(path: Path) -> Document:
+    already_ingested = ingested_documents()
+    if path.name in already_ingested:
+        return
+
     # Get what type of file it is
     extension = path.suffix.lower()
 
     # Determine what file reader to use and use it
     try:
         document = READERS[extension](path)
+        mark_as_ingested(path)
     except UnsupportedFileTypeError:
         raise UnsupportedFileTypeError(f"Skipping {path.name} — unsupported file type. Only .txt and .pdf are supported.")
 

@@ -30,6 +30,8 @@ def ingest():
     for file in files:
         try:
             document = load_document(file)
+            if document is None:
+                continue
         except UnsupportedFileTypeError as e:
             warnings.append(str(e))
             continue
