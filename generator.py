@@ -21,7 +21,7 @@ IMPORTANT RULES:
 - If the answer is not in the context say: "I don't have that in my notes."
 - Do not include a preamble like 'Here's a clear answer'
 
-Write a clear 3-4 sentence answer, then list 3 key points as bullets."""
+Write a clear 3-4 sentence answer, then list 3 key points using markdown bullet points starting with "- " (a dash and a space)."""
 
 
 

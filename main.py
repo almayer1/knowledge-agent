@@ -1,6 +1,9 @@
+from pathlib import Path
 from rich import print
+from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
+import shutil
 import typer
 
 from exceptions import OllamaConnectionError, EmptyKnowledgeBaseError, UnsupportedFileTypeError, EmptyFileError
@@ -76,13 +79,46 @@ def ask(question: str):
     for i, source in enumerate(answer.sources):
         print(f"  [cyan][Source {i+1}][/cyan] {source.chunk.metadata['source']}")
 
-
 @app.command(name="stats")
 def stats():
     message = f"There Are {count()} Chunks"
     print(Panel(message, title="Stats", border_style="green", expand=False))
+
+@app.command(name="add-file")
+def add_file(path: Path):
+    # Does it exist?
+    if not path.exists():
+        print("[red]File not found[/red]")
+        raise typer.Exit(1)
     
+    # Is it supported?
+    if not path.is_file():
+        print("[red]Unsupported file type[/red]")
+        raise typer.Exit(1)
+    if path.suffix not in [".txt", ".pdf"]:
+        print("[red]Unsupported file type[/red]")
+        raise typer.Exit(1)
+
+    # Add to data/raw
+    shutil.copy(path, settings.data_dir / "raw" / path.name)
     
+    # Ingest 
+    try:
+        document = load_document(path)
+    except UnsupportedFileTypeError as e:
+        print(f"[yellow]Warning: {e}[/yellow]")
+    except UnicodeDecodeError as e:
+        print(f"[yellow]Warning: {e}[/yellow]")
+    except EmptyFileError as e:
+        print(f"[yellow]Warning: {e}[/yellow]")
+        
+    chunks = chunk_document(document)
+    add_chunks(chunks)
+
+    num_chunks = chunks[0].metadata["total_chunks"]
+    message = f"{num_chunks} chunks were added from 1 file"
+    print(Panel(message, title="Summary", border_style="green", expand=False))
+
 
 if __name__ == "__main__":
     app()
