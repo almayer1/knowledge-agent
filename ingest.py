@@ -12,17 +12,15 @@ settings = Settings()
 
 def read_txt(path: Path) -> Document:
     path = path.resolve()
-
     try:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
     except UnicodeDecodeError:
         raise UnicodeDecodeError(f"Skipping {path.name} — could not read file. Check the file encoding.")
 
-    
     return Document(
         id=hashlib.md5(str(path).encode()).hexdigest(),
-        source=str(path),
+        source=path.name,
         content=content,
         doc_type=DocType.TEXT
     )
@@ -53,7 +51,7 @@ def read_typed_pdf(path: Path) -> Document:
 
     return Document(
         id=hashlib.md5(str(path).encode()).hexdigest(),
-        source=str(path),
+        source=path.name,
         content=full_text,
         doc_type=DocType.TYPED_PDF
     )

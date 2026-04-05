@@ -4,10 +4,13 @@ from pathlib import Path
 
 
 class Settings(BaseSettings):
-    # LLM settings
+    # LLM
     llm_base_url: str = "http://localhost:11434/v1"
     llm_api_key: str = "ollama"
     llm_model: str = "llama3.2"
+
+    # API
+    api_url: str = "http://localhost:8000"
 
     # Chunking
     chunk_size: int = 500
