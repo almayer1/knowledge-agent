@@ -15,6 +15,8 @@ Built for students who use **GoodNotes** — export your handwritten lecture not
 - **Stores** chunks in ChromaDB as semantic vectors — persists to disk between sessions
 - **Retrieves** the 5 most relevant chunks for any question using cosine similarity
 - **Generates** grounded answers using a local LLM (Ollama) with inline source citations
+- **Exposes** a REST API via FastAPI for programmatic access
+- **Provides** a Streamlit frontend with file upload, query interface, and source display
 - **Handles errors** gracefully — empty folders, unsupported files, Ollama not running, corrupted PDFs
 
 ---
@@ -29,6 +31,8 @@ Built for students who use **GoodNotes** — export your handwritten lecture not
 | Apple Vision | Handwriting OCR for GoodNotes exports |
 | pdfplumber | Text extraction for typed PDFs |
 | pdf2image | PDF page rendering for OCR pipeline |
+| FastAPI | REST API layer |
+| Streamlit | Web frontend with file upload and query UI |
 | Pydantic | Data validation and settings management |
 | Typer | CLI interface |
 | Rich | Terminal output formatting |
@@ -118,6 +122,7 @@ CHUNK_OVERLAP=50
 TOP_K=5
 OCR_DPI=300
 OCR_MIN_CONFIDENCE=0.65
+API_URL=http://localhost:8000
 ```
 
 No API keys required. Everything runs locally.
@@ -126,9 +131,67 @@ No API keys required. Everything runs locally.
 
 ## Usage
 
-### Ingest your documents
+### Streamlit UI
 
-Drop your files into `data/raw/` then run:
+The easiest way to use the agent. Starts both the FastAPI backend and Streamlit frontend in one command:
+
+```bash
+make run
+```
+
+Open [http://localhost:8501](http://localhost:8501) in your browser.
+
+- **Upload files** via drag and drop in the sidebar
+- **Click ENCODE INTO VAULT** to ingest them
+- **Type a question** and click TRANSMIT
+- **Expand SOURCE NODES** to see which documents were cited
+
+To stop both servers:
+
+```bash
+make stop
+```
+
+---
+
+### REST API
+
+Start the FastAPI server:
+
+```bash
+uv run uvicorn app:app --reload
+```
+
+Interactive docs at [http://localhost:8000/docs](http://localhost:8000/docs)
+
+**Ingest documents:**
+```bash
+curl -X POST http://localhost:8000/ingest
+```
+
+**Ask a question:**
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is a database schema?"}'
+```
+
+**Check stats:**
+```bash
+curl http://localhost:8000/stats
+```
+
+---
+
+### CLI
+
+**Add a single file:**
+
+```bash
+uv run python -m main add-file /path/to/notes.pdf
+```
+
+**Ingest all files in data/raw/:**
 
 ```bash
 uv run python -m main ingest
@@ -140,13 +203,7 @@ uv run python -m main ingest
 ╰───────────────────────────────────╯
 ```
 
-Re-running ingest is safe — existing documents are upserted, no duplicates created.
-
-Supported formats:
-- `.txt` — plain text notes
-- `.pdf` — typed PDFs (lecture slides, textbooks) and handwritten GoodNotes exports
-
-### Ask a question
+**Ask a question:**
 
 ```bash
 uv run python -m main ask "what is the difference between Europe and the US on data privacy?"
@@ -159,24 +216,18 @@ uv run python -m main ask "what is the difference between Europe and the US on d
 │ the United States has no explicit right to deletion [Source 1]. │
 │                                                                  │
 │ Key Points:                                                      │
-│ • Europe: GDPR gives citizens right to delete their data        │
-│ • US: no equivalent explicit privacy right exists               │
+│ - Europe: GDPR gives citizens right to delete their data        │
+│ - US: no equivalent explicit privacy right exists               │
 ╰──────────────────────────────────────────────────────────────────╯
 Sources:
-  [Source 1] data/raw/databases.pdf
-  [Source 2] data/raw/databases.pdf
+  [Source 1] databases.pdf
+  [Source 2] databases.pdf
 ```
 
-### Check knowledge base size
+**Check knowledge base size:**
 
 ```bash
 uv run python -m main stats
-```
-
-```
-╭─────── Stats ───────╮
-│ There Are 50 Chunks │
-╰─────────────────────╯
 ```
 
 ---
@@ -185,9 +236,8 @@ uv run python -m main stats
 
 1. Open GoodNotes and select your notebook
 2. Tap **Export -> PDF**
-3. Save the file to `data/raw/`
-4. Run `uv run python -m main ingest`
-5. Ask questions about your lecture notes
+3. Run `uv run python -m main add-file /path/to/export.pdf`
+4. Ask questions about your lecture notes
 
 > **Note:** A confidence warning appears if OCR quality is low (below 65%). This usually means the handwriting was unclear or the PDF was a low quality scan — double check that content manually.
 
@@ -209,6 +259,7 @@ The system handles common failure cases gracefully:
 | Empty knowledge base on query | Tells user to run ingest first |
 | Empty question string | Prompts user to enter a question |
 | chunk_overlap >= chunk_size | Caught at startup by Pydantic validator |
+| API unreachable from UI | Connection error shown in Streamlit |
 
 ---
 
@@ -216,18 +267,21 @@ The system handles common failure cases gracefully:
 
 ```
 knowledge-agent/
-├── config.py        — settings loaded from .env with Pydantic validation
-├── models.py        — data shapes: Document, Chunk, QueryResult, Answer
-├── exceptions.py    — custom exceptions: OllamaConnectionError, EmptyKnowledgeBaseError etc.
-├── ingest.py        — file readers, auto-detection dispatch table, chunker
-├── ocr.py           — Apple Vision OCR pipeline for handwritten PDFs
-├── store.py         — ChromaDB operations: add, query, count
-├── retriever.py     — semantic search and context formatting
-├── generator.py     — prompt assembly and Ollama LLM call
-├── main.py          — Typer CLI: ingest, ask, stats
+├── config.py          — settings loaded from .env with Pydantic validation
+├── models.py          — data shapes: Document, Chunk, QueryResult, Answer
+├── exceptions.py      — custom exceptions: OllamaConnectionError, EmptyKnowledgeBaseError etc.
+├── ingest.py          — file readers, auto-detection dispatch table, chunker
+├── ocr.py             — Apple Vision OCR pipeline for handwritten PDFs
+├── store.py           — ChromaDB operations: add, query, count
+├── retriever.py       — semantic search and context formatting
+├── generator.py       — prompt assembly and Ollama LLM call
+├── main.py            — Typer CLI: ingest, ask, stats, add-file
+├── app.py             — FastAPI REST API: /ingest, /ask, /stats
+├── streamlit_app.py   — Streamlit web UI
+├── Makefile           — make run / make stop
 ├── data/
-│   ├── raw/         — drop your documents here
-│   └── chroma/      — vector database (auto-generated, gitignored)
+│   ├── raw/           — drop your documents here
+│   └── chroma/        — vector database (auto-generated, gitignored)
 └── tests/
     ├── conftest.py       — shared pytest fixtures
     ├── test_ingest.py    — chunking and ingestion tests
@@ -249,6 +303,7 @@ All settings can be overridden in `.env`:
 | `TOP_K` | `5` | Chunks retrieved per query |
 | `OCR_DPI` | `300` | PDF render resolution for OCR |
 | `OCR_MIN_CONFIDENCE` | `0.65` | Confidence threshold for OCR quality warning |
+| `API_URL` | `http://localhost:8000` | FastAPI server URL for Streamlit |
 
 ---
 
@@ -289,11 +344,11 @@ tests/test_retriever.py::test_sources_formatting PASSED
 
 ## Roadmap
 
-- [ ] `add-file` CLI command — copy and ingest in one step
+- [x] `add-file` CLI command — copy and ingest a single file in one step
+- [x] FastAPI REST API
+- [x] Streamlit web UI with drag and drop upload
 - [ ] Incremental ingestion — skip already ingested files for speed
 - [ ] Markdown file support
 - [ ] Conversation memory for follow-up questions
-- [ ] Streamlit chat UI with drag and drop file upload
-- [ ] Async ingestion for large document collections
 - [ ] Re-ranking for improved retrieval quality
-- [ ] Usage logging and stats dashboard
+- [ ] Answer logging and stats dashboard
