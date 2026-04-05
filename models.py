@@ -36,3 +36,6 @@ class IngestResponse(BaseModel):
     chunks_added: int
     files_processed: int
     warnings: list[str] = []
+
+class StatsResponse(BaseModel):
+    chunk_count: int

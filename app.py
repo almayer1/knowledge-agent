@@ -1,13 +1,8 @@
 from fastapi import FastAPI, HTTPException
-from rich.panel import Panel
-from rich.text import Text
-from rich import print
-import typer
 
 from config import Settings
 from exceptions import OllamaConnectionError, EmptyKnowledgeBaseError, UnsupportedFileTypeError, EmptyFileError
-from config import Settings
-from models import AskRequest
+from models import AskRequest, IngestResponse, StatsResponse
 from ingest import load_document, chunk_document
 from store import count, add_chunks
 from generator import generate
@@ -26,24 +21,23 @@ def ingest():
     files = list(txt_files) + list(pdf_files)
 
     if len(files) == 0:
-        print("There are no files to search through! Please provide file(s)")
-        return
-        raise HTTPException(status_code=503, detail="There are no files to search through! Please provide file(s)")
+        raise HTTPException(status_code=400, detail="No files found. Add files before ingesting.")
 
     # Extract chunks from each file and add them to db
+    warnings = []
     num_chunks = 0
     num_documents = 0
     for file in files:
         try:
             document = load_document(file)
         except UnsupportedFileTypeError as e:
-            print(f"[yellow]Warning: {e}[/yellow]")
+            warnings.append(str(e))
             continue
         except UnicodeDecodeError as e:
-            print(f"[yellow]Warning: {e}[/yellow]")
+            warnings.append(str(e))
             continue
         except EmptyFileError as e:
-            print(f"[yellow]Warning: {e}[/yellow]")
+            warnings.append(str(e))
             continue
 
         chunks = chunk_document(document)
@@ -52,10 +46,12 @@ def ingest():
         #stats for summary
         num_chunks += chunks[0].metadata["total_chunks"]
         num_documents += 1
-    
-    # Print summary
-    message = f"{num_chunks} chunks were added from {num_documents} files"
-    print(Panel(message, title="Summary", border_style="green", expand=False))
+
+    return IngestResponse(
+        chunks_added = num_chunks,
+        files_processed=num_documents,
+        warnings=warnings
+    )
 
 @app.post("/ask")
 def ask(request: AskRequest):
@@ -75,4 +71,7 @@ def ask(request: AskRequest):
 
 @app.get("/stats")
 def stats():
-    pass
+    return StatsResponse(
+        chunk_count=count()
+    )
+
