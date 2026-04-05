@@ -1,3 +1,6 @@
+import json
+from typing import Generator
+
 from openai import OpenAI
 import openai
 
@@ -20,15 +23,45 @@ IMPORTANT RULES:
 - Cite sources after each sentence using [Source 1], [Source 2] etc.
 - If the answer is not in the context say: "I don't have that in my notes."
 - Do not include a preamble like 'Here's a clear answer'
+- If the user asks a follow-up question, use the conversation history to understand what they're referring to.
 
 Write a clear 3-4 sentence answer, then list 3 key points using markdown bullet points starting with "- " (a dash and a space)."""
 
 
 
-def generate(question: str) -> Answer:
+def generate_stream(question: str, history: list) -> Generator:
     sources = retrieve(question)
     context = format_context(sources)
 
+    user_prompt = f"Context:\n{context}\nQuestion: {question}"
+
+    try:
+        response = client.chat.completions.create(
+            model=settings.llm_model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                *history,
+                {"role": "user", "content": user_prompt}
+            ],
+            stream=True
+        )
+    except openai.APIConnectionError:
+        raise OllamaConnectionError("Could not connect to Ollama.\nMake sure it is running with: ollama serve")
+    
+    for chunk in response:
+        token = chunk.choices[0].delta.content
+        if token:
+            yield token
+
+    data = []
+    for source in sources:
+        data.append(source.model_dump())
+    
+    yield json.dumps({"sources": data})
+
+def generate(question: str) -> Answer:
+    sources = retrieve(question)
+    context = format_context(sources)
     user_prompt = f"Context:\n{context}\nQuestion: {question}"
 
     try:
@@ -42,7 +75,7 @@ def generate(question: str) -> Answer:
     except openai.APIConnectionError:
         raise OllamaConnectionError("Could not connect to Ollama.\nMake sure it is running with: ollama serve")
     
-    answer = response.choices[0].message.content
+    answer = response.choices[0].message.content    
     return Answer(
         question=question,
         answer=answer,

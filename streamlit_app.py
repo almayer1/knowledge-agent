@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import streamlit as st
 import requests
@@ -12,6 +13,13 @@ st.set_page_config(
     page_icon="ᚦ",
     layout="wide"
 )
+
+def token_stream(response):
+    for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
+        if chunk.startswith("{"):
+            st.session_state.sources = json.loads(chunk)["sources"]
+        else:
+            yield chunk
 
 # Sidebar
 with st.sidebar:
@@ -62,8 +70,15 @@ st.divider()
 st.markdown("<br>", unsafe_allow_html=True)
 question = st.text_input("transmit query")
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
 if "answer" not in st.session_state:
     st.session_state.answer = None
+
+if "sources" not in st.session_state:
+    st.session_state.sources = None
+
 
 if st.button("⟁ TRANSMIT", use_container_width=False):
     if not question:
@@ -71,18 +86,27 @@ if st.button("⟁ TRANSMIT", use_container_width=False):
     else:
         with st.spinner("ᚦ scanning vault..."): 
             try:
-                response = requests.post(f"{API_URL}/ask", json={"question": question})
-                if response.status_code == 200:
-                    st.session_state.answer = response.json()
-                else:
-                    st.error(response.json().get("detail", "Something went wrong"))
+                response = requests.post(
+                    f"{API_URL}/ask/stream", 
+                    json={
+                        "question": question,
+                        "history": st.session_state.history[-6:]
+                    }, 
+                    stream=True
+                )
             except requests.exceptions.ConnectionError:
                 st.error("Cannot connect to API — is the server running?")
+        if response.status_code == 200:
+            st.session_state.answer = st.write_stream(token_stream(response))
+            st.session_state.history.append({"role": "user", "content": question})
+            st.session_state.history.append({"role": "assistant", "content": st.session_state.answer}) 
+        else:
+            st.error(response.json().get("detail", "Something went wrong"))
 
-if st.session_state.answer is not None:
+if st.session_state.answer is not None: 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(st.session_state.answer["answer"])
     st.markdown("<br>", unsafe_allow_html=True)
     with st.expander("◈ SOURCE NODES — expand to inspect"):
-        for i, source in enumerate(st.session_state.answer["sources"]):
-            st.write(f"[Source {i+1}] {source['chunk']['metadata']['source']}")
+        if st.session_state.sources:
+            for i, source in enumerate(st.session_state.sources):
+                st.write(f"[Source {i+1}] {source['chunk']['metadata']['source']}")

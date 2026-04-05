@@ -1,11 +1,12 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from config import Settings
 from exceptions import OllamaConnectionError, EmptyKnowledgeBaseError, UnsupportedFileTypeError, EmptyFileError
 from models import AskRequest, IngestResponse, StatsResponse
 from ingest import load_document, chunk_document
 from store import count, add_chunks
-from generator import generate
+from generator import generate, generate_stream
 
 settings = Settings()
 app = FastAPI(
@@ -69,6 +70,14 @@ def ask(request: AskRequest):
         raise HTTPException(status_code=503, detail=str(e))
     
     return answer
+
+@app.post("/ask/stream")
+def stream(request: AskRequest):
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="Please enter a question.")
+
+    generator = generate_stream(request.question, request.history)
+    return StreamingResponse(generator, media_type="text/plain")
 
 
 @app.get("/stats")

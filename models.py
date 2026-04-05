@@ -31,6 +31,7 @@ class Answer(BaseModel):
 
 class AskRequest(BaseModel):
     question: str
+    history: list = []
 
 class IngestResponse(BaseModel):
     chunks_added: int
