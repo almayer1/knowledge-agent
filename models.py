@@ -31,3 +31,8 @@ class Answer(BaseModel):
 
 class AskRequest(BaseModel):
     question: str
+
+class IngestResponse(BaseModel):
+    chunks_added: int
+    files_processed: int
+    warnings: list[str] = []
