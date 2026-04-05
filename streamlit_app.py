@@ -27,7 +27,12 @@ with st.sidebar:
     st.divider()
     st.markdown("<p style='letter-spacing:0.18em; opacity:0.45; font-size:0.72rem; color:#C084FC;'>⟁ LOAD CORPUS</p>", unsafe_allow_html=True)
     # Ingest
-    uploaded_files = st.file_uploader("", type=["txt", "pdf"], accept_multiple_files=True)
+    uploaded_files = st.file_uploader(
+        "Upload documents",
+        type=["txt", "pdf"],
+        accept_multiple_files=True,
+        label_visibility="collapsed",
+    )
     if st.button("⟁ ENCODE INTO VAULT", use_container_width=True):
         if uploaded_files is not None:
             for file in uploaded_files:

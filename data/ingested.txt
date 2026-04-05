@@ -5,3 +5,4 @@ databases.pdf
 algorithms.pdf
 Lecture6.pdf
 Lecture8.pdf
+Lecture5.pdf
