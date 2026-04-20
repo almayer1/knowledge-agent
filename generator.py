@@ -1,8 +1,7 @@
 import json
 from typing import Generator
 
-from openai import OpenAI
-import openai
+import ollama
 
 from config import Settings
 from exceptions import OllamaConnectionError
@@ -10,11 +9,6 @@ from models import Answer
 from retriever import retrieve, format_context
 
 settings = Settings()
-
-client = OpenAI(
-    base_url=settings.llm_base_url,
-    api_key=settings.llm_api_key
-)
 
 SYSTEM_PROMPT = """You are a study assistant helping a student understand their lecture notes.
 
@@ -28,7 +22,6 @@ IMPORTANT RULES:
 Write a clear 3-4 sentence answer, then list 3 key points using markdown bullet points starting with "- " (a dash and a space)."""
 
 
-
 def generate_stream(question: str, history: list) -> Generator:
     sources = retrieve(question)
     context = format_context(sources)
@@ -36,7 +29,7 @@ def generate_stream(question: str, history: list) -> Generator:
     user_prompt = f"Context:\n{context}\nQuestion: {question}"
 
     try:
-        response = client.chat.completions.create(
+        response = ollama.chat(
             model=settings.llm_model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -45,18 +38,18 @@ def generate_stream(question: str, history: list) -> Generator:
             ],
             stream=True
         )
-    except openai.APIConnectionError:
+    except Exception as e:
         raise OllamaConnectionError("Could not connect to Ollama.\nMake sure it is running with: ollama serve")
-    
+
     for chunk in response:
-        token = chunk.choices[0].delta.content
+        token = chunk.message.content
         if token:
             yield token
 
     data = []
     for source in sources:
         data.append(source.model_dump())
-    
+
     yield json.dumps({"sources": data})
 
 def generate(question: str) -> Answer:
@@ -65,17 +58,17 @@ def generate(question: str) -> Answer:
     user_prompt = f"Context:\n{context}\nQuestion: {question}"
 
     try:
-        response = client.chat.completions.create(
+        response = ollama.chat(
             model=settings.llm_model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ]
         )
-    except openai.APIConnectionError:
+    except Exception as e:
         raise OllamaConnectionError("Could not connect to Ollama.\nMake sure it is running with: ollama serve")
-    
-    answer = response.choices[0].message.content    
+
+    answer = response.message.content
     return Answer(
         question=question,
         answer=answer,

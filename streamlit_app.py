@@ -89,27 +89,34 @@ if st.button("⟁ TRANSMIT", use_container_width=False):
     if not question:
         st.error("Please enter a question")
     else:
-        with st.spinner("ᚦ scanning vault..."): 
-            try:
-                response = requests.post(
-                    f"{API_URL}/ask/stream", 
-                    json={
-                        "question": question,
-                        "history": st.session_state.history[-6:]
-                    }, 
-                    stream=True
-                )
-            except requests.exceptions.ConnectionError:
-                st.error("Cannot connect to API — is the server running?")
+        try:
+            response = requests.post(
+                f"{API_URL}/ask/stream",
+                json={
+                    "question": question,
+                    "history": st.session_state.history[-6:]
+                },
+                stream=True
+            )
+        except requests.exceptions.ConnectionError:
+            st.error("Cannot connect to API — is the server running?")
         if response.status_code == 200:
-            st.session_state.answer = st.write_stream(token_stream(response))
+            with st.spinner("ᚦ scanning vault..."):
+                full_response = b""
+                for chunk in response.iter_content(chunk_size=None):
+                    full_response += chunk
+            chunks = full_response.decode("utf-8").split("{", 1)
+            answer_text = chunks[0]
+            if len(chunks) > 1:
+                st.session_state.sources = json.loads("{" + chunks[1])["sources"]
+            st.session_state.answer = answer_text
             st.session_state.history.append({"role": "user", "content": question})
-            st.session_state.history.append({"role": "assistant", "content": st.session_state.answer}) 
+            st.session_state.history.append({"role": "assistant", "content": st.session_state.answer})
         else:
             st.error(response.json().get("detail", "Something went wrong"))
 
-if st.session_state.answer is not None: 
-    st.markdown("<br>", unsafe_allow_html=True)
+if st.session_state.answer is not None:
+    st.markdown(st.session_state.answer)
     st.markdown("<br>", unsafe_allow_html=True)
     with st.expander("◈ SOURCE NODES — expand to inspect"):
         if st.session_state.sources:
