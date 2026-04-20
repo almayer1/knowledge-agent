@@ -28,6 +28,7 @@ Built for students who use **GoodNotes** — export your handwritten lecture not
 | Python 3.12 | Core language |
 | ChromaDB | Local persistent vector database |
 | Ollama (llama3.2) | Local LLM — runs fully on your machine, no API costs |
+| ollama (Python) | Native Python client for Ollama |
 | Apple Vision | Handwriting OCR for GoodNotes exports |
 | pdfplumber | Text extraction for typed PDFs |
 | pdf2image | PDF page rendering for OCR pipeline |
@@ -104,11 +105,10 @@ uv sync
 brew install poppler
 ```
 
-### 3. Pull the LLM and start Ollama
+### 3. Pull the LLM
 
 ```bash
 ollama pull llama3.2
-ollama serve           # keep this running in a separate terminal
 ```
 
 ### 4. Configure settings
@@ -133,7 +133,7 @@ No API keys required. Everything runs locally.
 
 ### Streamlit UI
 
-The easiest way to use the agent. Starts both the FastAPI backend and Streamlit frontend in one command:
+The easiest way to use the agent. Starts Ollama, the FastAPI backend, and Streamlit frontend in one command:
 
 ```bash
 make run
